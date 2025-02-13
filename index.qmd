@@ -2,7 +2,7 @@
 title: "Chocolate Chip Cookies"
 execute:
   error: true
-author: "Your Name"
+author: "Cooper Malone"
 output: html_document
 ---
 
@@ -13,9 +13,30 @@ Make sure that your end-result data has appropriate types for each column - thes
 
 ```{r}
 
+df=read.csv("choc_chip_cookie_ingredients.csv")
+
+df=df %>%
+  mutate(Ingredient = as.character(Ingredient),
+    Text = as.character(Text),
+    Recipe_Index = as.character(Recipe_Index),
+    Rating = as.numeric(Rating),
+    Quantity = as.numeric(Quantity),
+    Unit = as.character(Unit))
+
 ```
 
 ```{python}
+
+import pandas as pd
+
+df = pd.read_csv("choc_chip_cookie_ingredients.csv")
+
+df["Ingredient"] = df["Ingredient"].astype(str)  
+df["Text"] = df["Text"].astype(str)  
+df["Recipe_Index"] = df["Recipe_Index"].astype(str)  
+df["Rating"] = df["Rating"].astype(float) 
+df["Quantity"] = df["Quantity"].astype(float)  
+df["Unit"] = df["Unit"].astype(str)
 
 ```
 
@@ -34,11 +55,11 @@ Exploratory data analysis is the process of getting familiar with your dataset. 
 
 Generate at least 5 questions you might explore using this database of cookie ingredients.
 
-1.
-2. 
-3. 
-4. 
-5. 
+1. What's the average rating of all the recipes? 
+2. How do the three recipe sources differ, if at all?
+3. What is the most common ingredient?
+4. Is there a correlation between recipe rating and ingredient quantity?
+5. How does the ingredients affect the quantity? 
 
 
 ### Skimming the Data
@@ -54,13 +75,23 @@ Install both packages, and read the package documentation ([R](https://cran.r-pr
 
 ```{r}
 
+library(skimr)
+
+skim(df)
+
 ```
 
 ```{python}
 
+from skimpy import skim
+
+skim(df)
+
 ```
 
 [Part 2] Write 1-2 sentences about what you can tell from each summary display you generate. Did you discover anything new about the data?
+
+Part 2: I discovered that the shortest ingredient is 1.0 egg while the longest has many more ingredients.
 
 ### Generating Tables
 
@@ -69,15 +100,85 @@ You may want to use the `dplyr` package in R (`group_by` or `count` functions), 
 
 [Part 1] Using R and Python, generate a table that shows what **proportion** of recipes contain each type of ingredient, for the most common 20 ingredients.
 
+```{r}
+
+library(dplyr)
+
+top20=df %>%
+  count(Ingredient, sort = TRUE) %>%
+  top_n(20, n) %>%
+  pull(Ingredient)
+
+top20df=df %>%
+  filter(Ingredient %in% top20)
+
+recipes=top20df %>%
+  group_by(Ingredient) %>%
+  summarise(Recipe_Count = n_distinct(Recipe_Index))
+
+total_recipes=n_distinct(df$Recipe_Index)
+
+table=recipes %>%
+  mutate(Proportion = Recipe_Count / total_recipes) %>%
+  select(Ingredient, Proportion)
+
+print(table)
+
+```
+
+```{python}
+
+import pandas as pd
+
+top20 = df['Ingredient'].value_counts().head(20).index
+
+top20df = df[df['Ingredient'].isin(top20)]
+
+recipes = top20df.groupby('Ingredient')['Recipe_Index'].nunique()
+
+total_recipes = df['Recipe_Index'].nunique()
+
+table = (recipes / total_recipes).reset_index()
+
+table.columns = ['Ingredient', 'Proportion']
+
+print(table)
+
+```
+
 [Part 2] Print out a character string that lists all of the ingredients that do not appear in at least 20 recipes.
 
+```{python}
 
-(Delete this note, but you can include data values inline in markdown text by using backticks, at least in R. For instance, here is R's built in value for pi: `r pi`. Unfortunately, this doesn't work in python using the knitr markdown engine, but you can print the list out in python anyways using a code chunk.)
+recipe_count = df.groupby('Ingredient')['Recipe_Index'].nunique()
 
+ingredients20 = recipe_count[recipe_count < 20].index
+
+ingredients = ', '.join(ingredients20)
+
+print(ingredients)
+
+```
 ### Visualization
 
 Using whatever plotting system you are comfortable with in R or python, see if you can create a couple of useful exploratory data visualizations which address one of the questions you wrote above - or another question which you've come up with as you've worked on this assignment.
 
 [Part 1] Create at least one plot (it doesn't have to be pretty) that showcases an interesting facet of the data.
 
+```{python}
+
+import matplotlib.pyplot as plt
+
+common = df['Ingredient'].value_counts().head(5)
+
+common.plot()
+plt.title('Common Ingredients')
+plt.xlabel('Frequency')
+plt.ylabel('Ingredient')
+plt.show()
+
+```
+
 [Part 2] Write 2-3 sentences about what you can learn from that plot and what directions you might want to investigate from here.
+
+Part 2: I can learn from the plot what the most common and least common ingredient is as well as some in the middle. I made the plot encompass the top 5 ingredients and what I can investigate here is maybe why these are the top 5 ingredients and what role they play on the other variables. 
